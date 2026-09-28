@@ -1,0 +1,9 @@
+function y=funu1(x,n,m,r,newinvbeta,newgamma,counsta,suminvbeta,sumgamma,lambda)
+% FUNU1 evaluates the scalar equilibrium condition for the quadratic term.
+% ANALYTICALSOL passes this residual to FSOLVE for each coalition.
+
+sumsqua=0;
+for i=1:n
+    sumsqua=sumsqua+sqrt(((x-0.5*r)^2)-(lambda^2*newgamma(i)*newinvbeta(i)))*(1-counsta(i));
+end
+y=(n-m)*x-((n-m+1)*0.5*r-sumsqua-sqrt(((x-0.5*r)^2)-(lambda^2*suminvbeta*sumgamma)));

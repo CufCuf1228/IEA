@@ -1,0 +1,15 @@
+# R session state and temporary files
+.RData
+.RDataTmp*
+.Rhistory
+.Rproj.user/
+
+# MATLAB editor/autosave files
+*.asv
+*.m~
+
+# OS metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+
