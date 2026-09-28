@@ -1,179 +1,179 @@
 # IEA
 
-本仓库保存国际环境协定（International Environmental Agreements, IEA）研究的数值模型、联盟稳定性模拟、参数标定代码和论文绘图代码。模型将世界划分为 12 个地区，使用 Chebyshev 配点法求解温度状态下的价值函数，并比较无突变、一次气候突变和两次气候突变情景中的稳定联盟、排放、温度、收益分配及政策参数。
+This repository contains the numerical models, coalition-stability simulations, parameter-calibration code, and figure-generation scripts for a study of International Environmental Agreements (IEAs). The model divides the world into 12 regions, solves temperature-dependent value functions by Chebyshev collocation, and compares stable coalitions, emissions, temperature, payoff allocation, and policy instruments under no-tipping, one-tipping, and two-tipping scenarios.
 
-## 研究流程
+## Research workflow
 
-1. `code/Parameter Simulation` 从 RICE 数据中标定地区收益函数和损害函数参数。
-2. `code/Chebyshev Coefs Simulation` 针对各种联盟与突变状态求解价值函数系数，并把结果保存为 `.mat` 文件。
-3. `code/One Tipping Find Steady Coalition` 和 `code/Two Tippings Find Steady Coalition` 使用价值函数系数逐年搜索稳定联盟，并输出 `.xlsx` 结果。
-4. `code/One Tipping Make Grand` 搜索使大联盟稳定所需的最低连接率或制裁率。
-5. `R_code` 读取上述 Excel 结果，生成正文图 4.2–4.5 和附录图。
+1. `code/Parameter Simulation` calibrates regional benefit and damage functions from RICE data.
+2. `code/Chebyshev Coefs Simulation` solves value-function coefficients for every coalition and tipping state and saves them as `.mat` files.
+3. `code/One Tipping Find Steady Coalition` and `code/Two Tippings Find Steady Coalition` use the coefficients to identify annual stable coalitions and export `.xlsx` results.
+4. `code/One Tipping Make Grand` searches for the minimum connection or sanction rate required to stabilize the grand coalition.
+5. `R_code` reads the Excel results and generates Figures 4.2–4.5 and the appendix figure.
 
-仓库同时包含预先计算的 `.mat` 系数、`.xlsx` 模拟结果和 `.pdf` 图件，便于直接检查和复现论文结果。
+Precomputed `.mat` coefficients, `.xlsx` simulation results, and `.pdf` figures are included so that the reported results can be inspected without rerunning every numerical solve.
 
-## 运行环境
+## Requirements
 
-- MATLAB；数值求解使用 Optimization Toolbox 中的 `fsolve`、`lsqcurvefit` 和 `lsqnonlin`。
-- MATLAB 需要能够读取和写入 Excel 工作簿。
-- R，以及以下包：`tidyverse`、`ggplot2`、`openxlsx`、`readxl`、`stringr`、`patchwork`、`cowplot`、`ggrepel`、`ggtext`、`scales` 和 `grid`。
+- MATLAB with Optimization Toolbox functions including `fsolve`, `lsqcurvefit`, and `lsqnonlin`.
+- MATLAB support for reading and writing Excel workbooks.
+- R with `tidyverse`, `ggplot2`, `openxlsx`, `readxl`, `stringr`, `patchwork`, `cowplot`, `ggrepel`, `ggtext`, `scales`, and `grid`.
 
-所有脚本均使用相对路径。请先切换到脚本所在目录再运行，不要把 `code` 下所有子目录一次性递归加入 MATLAB 路径；多个模块包含同名的 `ChebyEval`、`GetRatiomatrix`、`Residuals*` 等函数，递归加路径可能调用到错误版本。
+All scripts use relative paths. Run each entry script from its own directory. Do not recursively add every subdirectory under `code` to the MATLAB path: several modules intentionally contain local versions of functions such as `ChebyEval`, `GetRatiomatrix`, and `Residuals*`, and path shadowing may select the wrong implementation.
 
-## 快速开始
+## Quick start
 
 ### MATLAB
 
-按研究目的进入对应目录：
+Change to the relevant module directory before running an entry script:
 
 ```matlab
-% 1. 可选：重新标定参数
+% 1. Optional: recalibrate regional parameters
 cd('code/Parameter Simulation')
 run('main_simulation.m')
 
-% 2. 生成一次突变情景的价值函数系数
+% 2. Generate one-tipping value-function coefficients
 cd('../Chebyshev Coefs Simulation')
 run('Main_Test_Value_Function.m')
 
-% 3. 可选：生成无转移支付的地区价值函数分解
+% 3. Optional: derive no-transfer regional value functions
 run('Main_Test_Value_Function_NT.m')
 
-% 4. 计算一次突变情景的稳定联盟路径
+% 4. Simulate stable coalitions under one tipping event
 cd('../One Tipping Find Steady Coalition')
 run('Main_Test_Once_Tipping_Allocation.m')
 ```
 
-两次突变的联盟模拟从 `code/Two Tippings Find Steady Coalition/Main_Test_Twice_Tipping_Allocation.m` 启动；大联盟政策参数搜索从 `code/One Tipping Make Grand/Main_Test_Once_MakeGrand.m` 启动。运行前应检查入口脚本开头的突变年份、损害幅度、连接率、贴现率、分配规则及输入目录设置。
+Start the two-tipping coalition simulation from `code/Two Tippings Find Steady Coalition/Main_Test_Twice_Tipping_Allocation.m`. Start the grand-coalition policy search from `code/One Tipping Make Grand/Main_Test_Once_MakeGrand.m`. Before running either entry script, review the tipping years, damage increments, connection or sanction rates, discount rate, allocation rule, and input directories defined near the top of the file.
 
 ### R
 
-先把工作目录设为 `R_code`，再运行目标图对应的脚本。例如：
+Set the working directory to `R_code`, then source the script for the desired figure:
 
 ```r
 setwd("R_code")
 source("IEA_Plot_Figure_4.2.1.R")
 ```
 
-R 脚本会从 `../code` 中读取模拟结果，并把 PDF 保存到 `R_code/IEA Figures ...` 对应目录。
+The R scripts read simulation results from `../code` and save PDFs under the corresponding `R_code/IEA Figures ...` directory.
 
-## 目录与函数说明
+## Directory and function reference
 
 ### `code/Parameter Simulation`
 
-- `main_simulation.m`：读取 `COPY_RICE_2010_BAU1.xlsx` 中 12 个地区的产出、排放、气候损失和温度序列；将十年数据插值为年度数据；用非线性最小二乘估计收益参数 `alpha`、`beta` 和损害参数 `eta`、`gamma`。
-- `COPY_RICE_2010_BAU1.xlsx` / `.xls`：参数标定所需的 RICE 基准数据。
+- `main_simulation.m`: reads output, emissions, climate damages, and temperature for 12 regions from `COPY_RICE_2010_BAU1.xlsx`; interpolates decadal data to annual observations; and estimates the benefit parameters `alpha` and `beta` and damage parameters `eta` and `gamma` by nonlinear least squares.
+- `COPY_RICE_2010_BAU1.xlsx` / `.xls`: RICE benchmark data used for parameter calibration.
 
 ### `code/Chebyshev Coefs Simulation`
 
-该目录是价值函数求解的核心模块。
+This directory contains the core value-function solvers.
 
-| 文件/函数 | 功能 |
+| File or function | Purpose |
 | --- | --- |
-| `Main_Test_Value_Function.m` | 基准入口；设置地区参数和情景参数，调用一次突变求解器。文件末尾还保留两次突变等扩展情景的配置示例。 |
-| `Main_Test_Value_Function_NT.m` | 读取联盟层面的系数，生成无转移支付（No Transfer, NT）下的地区价值函数系数。 |
-| `No_Tipping_Chebyshev` | 求解无气候突变情景中各联盟及外部地区的 Chebyshev 价值函数。 |
-| `Once_Tipping_Chebyshev` | 求解一次突变前后及不同温度区间的价值函数；支持二次或四次损害函数。 |
-| `Twice_Tipping_Chebyshev` | 求解两次突变对应的多状态价值函数。 |
-| `Once_Tipping_Chebyshev_NT` | 将一次突变情景的联盟价值分解为各成员无转移支付价值。 |
-| `Twice_Tipping_Chebyshev_NT` | 将两次突变情景的联盟价值分解为各成员无转移支付价值。 |
-| `InitialCoefs` | 构造低阶 Chebyshev 初值、节点、基函数矩阵和损害项。 |
-| `UpdateInitCoefs` | 将低阶解延拓为高阶初值，并在新网格上重算损害项。 |
-| `CalculateChebyshevMatrices` | 生成 Gauss–Chebyshev 节点、基函数及其温度导数矩阵。 |
-| `Calculate_Q_and_Benefits` | 由价值函数导数恢复各地区排放、总排放和当期收益。 |
-| `Residuals0` | 计算第一次突变前、含后续价值连接项的 HJB 配点残差。 |
-| `Residuals1` | 计算下一次突变前、含后续价值连接项的 HJB 配点残差。 |
-| `Residuals2` | 计算最终突变状态或无后续跳转状态的 HJB 配点残差。 |
-| `AnalyticalSol` | 在二次收益/损害设定下计算解析价值函数参数，用于检验数值解。 |
-| `funu1` | 为 `AnalyticalSol` 提供标量均衡条件残差，由 `fsolve` 求根。 |
-| `ChebyEval` | 在给定温度区间上计算一元 Chebyshev 多项式近似值。 |
-| `GetRatiomatrix` | 枚举非空联盟，并根据 2005 年 GDP 计算联盟的基准世界产出份额。 |
+| `Main_Test_Value_Function.m` | Benchmark entry script. Sets regional and scenario parameters and runs the one-tipping solver. The final commented section provides configurations for extensions such as two tipping events. |
+| `Main_Test_Value_Function_NT.m` | Loads coalition-level coefficients and derives region-level value functions for the no-transfer case. |
+| `No_Tipping_Chebyshev` | Solves coalition and outsider Chebyshev value functions when no tipping event occurs. |
+| `Once_Tipping_Chebyshev` | Solves value functions before and after one tipping event across low- and high-temperature intervals; supports quadratic or quartic damages. |
+| `Twice_Tipping_Chebyshev` | Solves the multi-state value functions associated with two tipping events. |
+| `Once_Tipping_Chebyshev_NT` | Decomposes coalition values into member-specific no-transfer values for all one-tipping states. |
+| `Twice_Tipping_Chebyshev_NT` | Decomposes coalition values into member-specific no-transfer values for all two-tipping states. |
+| `InitialCoefs` | Constructs low-order initial coefficients, Chebyshev nodes and basis matrices, and regional damage terms. |
+| `UpdateInitCoefs` | Prolongs a lower-degree solution to a higher-degree initial guess and recomputes damages on the refined grid. |
+| `CalculateChebyshevMatrices` | Builds Gauss–Chebyshev nodes, basis functions, and temperature-derivative matrices. |
+| `Calculate_Q_and_Benefits` | Recovers regional emissions, total emissions, and flow benefits from value-function derivatives. |
+| `Residuals0` | Evaluates HJB collocation residuals before the first tipping event, including the continuation-value term. |
+| `Residuals1` | Evaluates HJB collocation residuals before the next tipping event, including the continuation-value term. |
+| `Residuals2` | Evaluates HJB collocation residuals in the terminal tipping state or any state without another transition. |
+| `AnalyticalSol` | Computes closed-form value-function parameters under the quadratic specification for validation of the numerical solution. |
+| `funu1` | Supplies the scalar equilibrium residual solved by `fsolve` inside `AnalyticalSol`. |
+| `ChebyEval` | Evaluates a univariate Chebyshev approximation over a specified temperature interval. |
+| `GetRatiomatrix` | Enumerates all nonempty coalitions and calculates their shares of baseline 2005 world GDP. |
 
 ### `code/One Tipping Chebyshev Coefs`
 
-保存一次突变模型的预计算 `.mat` 系数。子目录名编码了基准情景及敏感性分析设置，包括连接机制、制裁机制、无连接/制裁、成本性制裁、无转移支付、收益函数幂次、损害函数幂次、突变损害和突变事件等。文件名中的数字依次记录主要情景参数，供联盟模拟脚本自动扫描和解析。
+This directory contains precomputed `.mat` coefficients for the one-tipping model. Subdirectories identify benchmark and sensitivity cases, including connection, sanction, no connection or sanction, costly sanctions, no transfers, alternative benefit and damage powers, tipping damages, and tipping-event timing. Numeric filename suffixes encode the principal scenario parameters and are parsed automatically by the coalition-simulation scripts.
 
 ### `code/One Tipping Find Steady Coalition`
 
-该模块读取一次突变系数，比较所有非空联盟并形成 2025–2100 年逐年路径。
+This module loads one-tipping coefficients, compares all nonempty coalitions, and constructs annual paths from 2025 to 2100.
 
-| 文件/函数 | 功能 |
+| File or function | Purpose |
 | --- | --- |
-| `Main_Test_Once_Tipping_Allocation.m` | 入口脚本；构造全部联盟状态、读取对应情景系数、选择 `Shapley` 或 `NoTransfer` 分配规则，并把轨迹写入 Excel。 |
-| `Once_Tipping_Allocation` | 在给定突变年份下逐年更新温度、收益和排放，检验内外稳定性并选择稳定联盟。 |
-| `GetNationFutureProfit` | 从“联盟总价值 + 外部地区价值”的系数布局中恢复各联盟的地区未来收益。 |
-| `GetNationFutureProfit_NoTransfer` | 从无转移支付系数中直接恢复每个地区的未来收益。 |
-| `PerformShapleyAllocation` | 根据各子联盟的边际贡献计算 Shapley 分配，并形成地区最终收益矩阵。 |
-| `ChebyshevDeriv` | 计算 Chebyshev 价值函数对温度的导数，用于排放一阶条件和温度更新。 |
-| `ChebyEval` | 在当前温度上计算 Chebyshev 价值函数。 |
-| `GetRatiomatrix` | 生成联盟 GDP 份额矩阵。 |
+| `Main_Test_Once_Tipping_Allocation.m` | Entry script. Enumerates coalition states, loads scenario coefficients, selects `Shapley` or `NoTransfer` allocation, and writes trajectories to Excel. |
+| `Once_Tipping_Allocation` | Updates temperature, payoffs, and emissions annually; tests internal and external stability; and selects a stable coalition for a specified tipping year. |
+| `GetNationFutureProfit` | Recovers regional continuation values from the coefficient layout containing one coalition-value block followed by outsider blocks. |
+| `GetNationFutureProfit_NoTransfer` | Recovers each region's continuation value directly from no-transfer coefficient blocks. |
+| `PerformShapleyAllocation` | Computes member allocations from marginal contributions of subcoalitions and returns the regional payoff matrix. |
+| `ChebyshevDeriv` | Evaluates the temperature derivative of a Chebyshev value function for the emissions first-order condition and temperature transition. |
+| `ChebyEval` | Evaluates a Chebyshev value function at the current temperature. |
+| `GetRatiomatrix` | Builds the coalition GDP-share matrix. |
 
-子目录 `Results of ...` 保存正文基准情景、不同联盟、不同分配规则、连接/制裁机制以及收益、损害和突变敏感性分析的 Excel 结果；`One Tipping Chebyshev Coefs` 是该模块运行时使用的系数副本。
+The `Results of ...` subdirectories contain Excel outputs for benchmark coalitions, alternative coalitions, allocation rules, connection and sanction mechanisms, and benefit, damage, and tipping sensitivity analyses. The nested `One Tipping Chebyshev Coefs` directory is a local copy of coefficients used by this module.
 
 ### `code/Two Tippings ChebyEval Results Power_b_2`
 
-保存两次突变模型在基准二次收益函数下的五类状态系数：零次突变的低/高温区间、一次突变的低/高温区间，以及两次突变后的状态。
+This directory contains two-tipping coefficients for the benchmark quadratic benefit specification. Five coefficient groups cover the low- and high-temperature intervals before any tipping event, the low- and high-temperature intervals after one event, and the state after both events.
 
 ### `code/Two Tippings Find Steady Coalition`
 
-| 文件/函数 | 功能 |
+| File or function | Purpose |
 | --- | --- |
-| `Main_Test_Twice_Tipping_Allocation.m` | 两次突变联盟模拟入口；读取五类状态系数，设置两个突变年份并输出年度结果。 |
-| `Twice_Tipping_Allocation` | 在两次突变的状态切换下搜索稳定联盟，返回温度、状态、效用、联盟、排放和收益路径。 |
-| `GetNationFutureProfit` | 从联盟和外部地区系数恢复地区未来收益。 |
-| `GetNationFutureProfit_NoTransfer` | 从无转移支付系数恢复地区未来收益。 |
-| `PerformShapleyAllocation` | 对联盟总价值执行 Shapley 分配。 |
-| `ChebyshevDeriv` | 计算价值函数的温度导数。 |
-| `ChebyEval` | 计算当前温度下的价值函数。 |
-| `GetRatiomatrix` | 生成联盟 GDP 份额矩阵。 |
+| `Main_Test_Twice_Tipping_Allocation.m` | Two-tipping simulation entry script. Loads all five state-specific coefficient sets, specifies both tipping years, and exports annual results. |
+| `Twice_Tipping_Allocation` | Searches for stable coalitions as the model moves through two tipping states and returns temperature, state, utility, coalition, emissions, and benefit paths. |
+| `GetNationFutureProfit` | Recovers regional continuation values from coalition and outsider coefficient blocks. |
+| `GetNationFutureProfit_NoTransfer` | Recovers regional continuation values from no-transfer coefficient blocks. |
+| `PerformShapleyAllocation` | Applies the Shapley rule to coalition value. |
+| `ChebyshevDeriv` | Evaluates the temperature derivative of the value function. |
+| `ChebyEval` | Evaluates the value function at the current temperature. |
+| `GetRatiomatrix` | Builds the coalition GDP-share matrix. |
 
-内部 `Two Tippings ChebyEval Results Power_b_2` 保存输入系数，`Extension` 保存两次突变情景的 Excel 输出。
+The nested `Two Tippings ChebyEval Results Power_b_2` directory supplies coefficient inputs, while `Extension` contains the two-tipping Excel output.
 
 ### `code/One Tipping Make Grand`
 
-该模块寻找能够让 12 地区大联盟保持稳定的最低连接率或制裁率。
+This module searches for the minimum connection or sanction rate that keeps the 12-region grand coalition stable.
 
-| 文件/函数 | 功能 |
+| File or function | Purpose |
 | --- | --- |
-| `Main_Test_Once_MakeGrand.m` | 入口脚本；逐年用区间扩张与二分搜索求最低政策率，并输出温度、政策率、价值函数和效用轨迹。 |
-| `EvaluateGrandCoalitionRate` | 在给定年份、温度和政策率下计算大联盟及单地区退出情景，按未来价值函数标准判断稳定性。 |
-| `Once_Tipping_Chebyshev_for_Grand` | 只针对大联盟和单地区退出状态求解一次突变价值函数，减少重复计算。 |
-| `AnalyticalSol` | 计算大联盟模块所用的二次设定解析解。 |
-| `InitialCoefs` / `UpdateInitCoefs` | 构造并逐阶更新 Chebyshev 求解初值。 |
-| `CalculateChebyshevMatrices` | 生成 Chebyshev 节点、基函数及导数矩阵。 |
-| `Residuals1` / `Residuals2` | 分别计算突变前连接状态和突变后终态的 HJB 残差。 |
-| `funu1` / `funu2` | 为解析解或低维系数系统提供非线性残差。 |
-| `ChebyEval` / `ChebyshevDeriv` | 计算价值函数及其温度导数。 |
-| `GetRatiomatrix` | 构造联盟 GDP 份额矩阵；入口脚本截取大联盟和单地区退出所需行。 |
+| `Main_Test_Once_MakeGrand.m` | Entry script. Uses interval expansion and bisection each year to find the minimum policy rate, then exports temperature, rate, value-function, and utility paths. |
+| `EvaluateGrandCoalitionRate` | Computes the grand coalition and all single-region exit cases at a given year, temperature, and policy rate, then tests stability using continuation values. |
+| `Once_Tipping_Chebyshev_for_Grand` | Solves one-tipping value functions only for the grand coalition and single-region exits, avoiding unnecessary coalition solves. |
+| `AnalyticalSol` | Computes the quadratic analytical solution used by this module. |
+| `InitialCoefs` / `UpdateInitCoefs` | Construct and successively refine initial coefficients for the Chebyshev solver. |
+| `CalculateChebyshevMatrices` | Builds Chebyshev nodes, basis functions, and derivative matrices. |
+| `Residuals1` / `Residuals2` | Evaluate the HJB residuals before tipping and in the terminal post-tipping state. |
+| `funu1` / `funu2` | Supply nonlinear residuals for the analytical or low-dimensional coefficient systems. |
+| `ChebyEval` / `ChebyshevDeriv` | Evaluate value functions and their temperature derivatives. |
+| `GetRatiomatrix` | Builds the coalition GDP-share matrix; the entry script retains only the grand coalition and single-region exits. |
 
-`GrandCoalitionTrace_Once_Connection.xlsx` 与 `GrandCoalitionTrace_Once_Sanction.xlsx` 分别保存连接率和制裁率实验结果。
+`GrandCoalitionTrace_Once_Connection.xlsx` and `GrandCoalitionTrace_Once_Sanction.xlsx` contain the connection-rate and sanction-rate experiments, respectively.
 
 ### `R_code`
 
-| 脚本 | 图件与主要内部函数 |
+| Script | Figure and internal helpers |
 | --- | --- |
-| `IEA_Plot_Figure_4.2.1.R` | 绘制一次突变下的排放、温度与联盟成员网格。`extract_plot_data` 整理 Excel 数据，`make_emission_temp_plot` 绘制双轴时间序列，`make_membership_grid_plot` 绘制成员/排放网格，`get_axis_params` 统一双轴尺度。 |
-| `IEA_Plot_Figure_4.2.2.R` | 比较不同联盟情景与大联盟。`extract_metrics` 提取指标，`calc_diff_vs_grand` 计算相对大联盟差异，`make_merged_plot_data` 合并情景，`get_ylim` 统一范围，`make_panel` 和 `make_custom_legend` 生成面板与图例。 |
-| `IEA_Plot_Figure_4.2.3.R` | 绘制相对无联盟的收益、损害和利润差异。`extract_calibration_metrics`、`calc_diff_vs_no_coalition`、`make_calibration_plot_data` 完成数据整理；`get_ylim_diff`、`make_calibration_panel` 和 `make_custom_legend` 完成作图。 |
-| `IEA_Plot_Figure_4.3.1.R` | 比较连接、制裁等收益政策情景。`read_scenario_data` 读取并标准化结果，`get_ylim_diff` 统一纵轴，`make_panel` 生成比较面板。 |
-| `IEA_Plot_Figure_4.3.2.R` | 比较维持大联盟稳定所需的最低连接率与制裁率。`read_and_process` 读取、清洗并合并轨迹数据。 |
-| `IEA_Plot_Figure_4.4.R` | 比较 Shapley 分配和无转移支付结果。`extract_plot_data` 整理情景，`get_axis_params` 设置双轴，`make_panel_plot` 绘制分配、排放和温度面板。 |
-| `IEA_Plot_Figure_4.5.1.R` | 比较连接率与突变损害敏感性情景和基准情景。`extract_plot_data`、`build_scenario_diff_data` 构建差异数据，`get_dual_axis_params` 统一尺度，`make_top_diff_plot`、`make_membership_compare_grid` 和 `make_scenario_block` 组合图件。 |
-| `IEA_Plot_Figure_4.5.2.R` | 收益函数敏感性分析。`extract_plot_data`、`make_emission_temp_plot`、`make_membership_grid_plot` 和 `get_axis_params` 分别负责数据提取、双轴曲线、成员网格和尺度。 |
-| `IEA_Plot_Figure_4.5.3.R` | 损害函数敏感性分析，内部函数与图 4.5.2 的职责相同。 |
-| `IEA_Plot_Figure_4.5.4.R` | 比较一次与两次突变。除通用的数据提取、双轴曲线、成员网格和尺度函数外，`make_scenario_block` 将单个突变情景组合成完整面板。 |
-| `IEA_Plot_Figure_Appendix.R` | 使用内置地区参数绘制附录中的收益/损害参数散点图。 |
+| `IEA_Plot_Figure_4.2.1.R` | Plots emissions, temperature, and coalition membership under one tipping event. `extract_plot_data` prepares the Excel data, `make_emission_temp_plot` draws the dual-axis time series, `make_membership_grid_plot` draws the membership/emissions grid, and `get_axis_params` harmonizes scales. |
+| `IEA_Plot_Figure_4.2.2.R` | Compares coalition scenarios with the grand coalition. `extract_metrics`, `calc_diff_vs_grand`, and `make_merged_plot_data` prepare the comparison; `get_ylim`, `make_panel`, and `make_custom_legend` create the panels and legend. |
+| `IEA_Plot_Figure_4.2.3.R` | Plots benefit, damage, and profit differences relative to no coalition. `extract_calibration_metrics`, `calc_diff_vs_no_coalition`, and `make_calibration_plot_data` prepare the data; `get_ylim_diff`, `make_calibration_panel`, and `make_custom_legend` produce the figure. |
+| `IEA_Plot_Figure_4.3.1.R` | Compares connection, sanction, and related benefit-policy cases. `read_scenario_data` standardizes results, `get_ylim_diff` harmonizes axes, and `make_panel` constructs the comparison panels. |
+| `IEA_Plot_Figure_4.3.2.R` | Compares the minimum connection and sanction rates required for a stable grand coalition. `read_and_process` reads, cleans, and combines the policy trajectories. |
+| `IEA_Plot_Figure_4.4.R` | Compares Shapley allocation with no transfers. `extract_plot_data` prepares each case, `get_axis_params` defines dual-axis scaling, and `make_panel_plot` draws the allocation, emissions, and temperature panels. |
+| `IEA_Plot_Figure_4.5.1.R` | Compares connection-rate and tipping-damage sensitivity cases with the benchmark. `extract_plot_data`, `build_scenario_diff_data`, `get_dual_axis_params`, `make_top_diff_plot`, `make_membership_compare_grid`, and `make_scenario_block` assemble the comparison. |
+| `IEA_Plot_Figure_4.5.2.R` | Benefit-function sensitivity analysis. `extract_plot_data`, `make_emission_temp_plot`, `make_membership_grid_plot`, and `get_axis_params` handle extraction, dual-axis curves, the membership grid, and scale selection. |
+| `IEA_Plot_Figure_4.5.3.R` | Damage-function sensitivity analysis using helpers with the same roles as Figure 4.5.2. |
+| `IEA_Plot_Figure_4.5.4.R` | Compares one and two tipping events. In addition to the shared extraction, time-series, membership-grid, and scale helpers, `make_scenario_block` assembles a complete panel for each scenario. |
+| `IEA_Plot_Figure_Appendix.R` | Uses the regional parameter arrays to produce the appendix scatter plots for benefit and damage parameters. |
 
-`IEA Figures 4.2`、`IEA Figures 4.3`、`IEA Figures 4.4`、`IEA Figures 4.5` 和 `IEA Figures Appendix` 保存各脚本生成的 PDF 图件。
+`IEA Figures 4.2`, `IEA Figures 4.3`, `IEA Figures 4.4`, `IEA Figures 4.5`, and `IEA Figures Appendix` contain the generated PDF figures.
 
-## 数据与输出命名
+## Data and output naming
 
-- `.mat`：Chebyshev 系数；前缀说明突变状态和温度区间，后缀编码损害幅度、连接/制裁率、损失率、收益函数幂次、近似阶数和贴现率等参数。
-- `.xlsx`：年度联盟状态、地区成员资格、排放、温度、收益/效用以及政策率轨迹。
-- `.pdf`：论文正文和附录的最终图件。
+- `.mat`: Chebyshev coefficients. Prefixes identify tipping states and temperature intervals; suffixes encode scenario values such as damage increments, connection or sanction rates, loss rates, benefit powers, approximation degrees, and discount rates.
+- `.xlsx`: annual coalition membership, emissions, temperature, payoff or utility, and policy-rate trajectories.
+- `.pdf`: final figures used in the paper and appendix.
 
-## 说明
+## Notes
 
-- 当前仓库保留研究输出以支持结果复核，因此体积主要来自 `.mat` 和 `.xlsx` 文件。
-- `.RData`、`.RDataTmp*`、`.Rhistory` 等本地 R 会话文件不属于可复现流程，已通过 `.gitignore` 排除。
-- `ChebyEval.m` 中保留了原作者和引用信息；使用该数值程序时请遵守源文件中的引用要求。
+- Research outputs are versioned to support result verification, so most repository storage is used by `.mat` and `.xlsx` files.
+- Local R session files such as `.RData`, `.RDataTmp*`, and `.Rhistory` are excluded through `.gitignore` because they are not part of the reproducible workflow.
+- `ChebyEval.m` retains its original authorship and citation notice. Follow the citation requirement in that source file when reusing the numerical routine.
 
